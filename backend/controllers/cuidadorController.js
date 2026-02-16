@@ -4,6 +4,7 @@ import Grabacion from '../models/grabacion.js';
 import AnalisisCognitivo from '../models/analisisCognitivo.js';
 import { uploadImageToR2 } from '../services/uploadService.js';
 
+//Estudiado
 // Obtener paciente asociado al cuidador
 export const getAssociatedPatient = async (req, res) => {
     try {
