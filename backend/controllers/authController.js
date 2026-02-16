@@ -4,7 +4,7 @@ import Usuario from '../models/usuario.js';
 import Configuracion from '../models/configuracion.js';
 import crypto from 'crypto';
 import { sendReminderEmail, buildResetPasswordHtml } from '../services/reminderMailer.js';
-
+//.
 export const register = async (req, res) => {
     try {
         const { nombre, email, password, rol } = req.body;
