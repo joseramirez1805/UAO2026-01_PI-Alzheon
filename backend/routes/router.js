@@ -9,6 +9,7 @@ import * as authController from '../controllers/authController.js';
 import * as pacienteController from '../controllers/pacienteController.js';
 import * as cuidadorController from '../controllers/cuidadorController.js';
 import * as medicoController from '../controllers/medicoController.js';
+import * as pruebaController from '../controllers/pruebaController.js';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -371,6 +372,20 @@ router.get('/cuidador/estadisticas',
     cuidadorController.getPatientStats
 );
 
+// Obtener pruebas cognitivas del paciente asociado
+router.get('/cuidador/pruebas-cognitivas',
+    authMiddleware,
+    requireRole('cuidador/familiar'),
+    cuidadorController.getPatientCognitivePruebas
+);
+
+// Eliminar una prueba cognitiva del paciente
+router.delete('/cuidador/pruebas-cognitivas/:pruebaId',
+    authMiddleware,
+    requireRole('cuidador/familiar'),
+    cuidadorController.deletePatientCognitivePrueba
+);
+
 // ========== RUTAS DEL MÉDICO ==========
 
 // Obtener estadísticas generales del médico
@@ -506,6 +521,77 @@ router.get('/medico/pacientes/:pacienteId/reporte',
     authMiddleware,
     requireRole('medico'),
     medicoController.generarReporte
+);
+
+// ========== RUTAS DE PRUEBAS COGNITIVAS (PACIENTE) ==========
+
+// Iniciar nueva prueba cognitiva
+router.post('/pruebas/iniciar',
+    authMiddleware,
+    requireRole('paciente'),
+    pruebaController.iniciarPrueba
+);
+
+// Registrar que vio la primera secuencia de imágenes
+router.post('/pruebas/:pruebaId/primera-secuencia',
+    authMiddleware,
+    requireRole('paciente'),
+    pruebaController.registrarPrimeraSecuencia
+);
+
+// Guardar respuesta verbal (solo texto)
+router.post('/pruebas/:pruebaId/respuesta-verbal',
+    (req, res, next) => {
+        console.log(`🚀 POST /api/pruebas/:pruebaId/respuesta-verbal`);
+        console.log(`   - pruebaId: ${req.params.pruebaId}`);
+        console.log(`   - URL completa: ${req.originalUrl}`);
+        next();
+    },
+    authMiddleware,
+    requireRole('paciente'),
+    pruebaController.guardarRespuestaVerbal
+);
+
+// Registrar que vio la segunda secuencia de imágenes
+router.post('/pruebas/:pruebaId/segunda-secuencia',
+    authMiddleware,
+    requireRole('paciente'),
+    pruebaController.registrarSegundaSecuencia
+);
+
+// Finalizar prueba con ordenamiento de imágenes
+router.post('/pruebas/:pruebaId/finalizar',
+    authMiddleware,
+    requireRole('paciente'),
+    pruebaController.finalizarPrueba
+);
+
+// Abandonar prueba en progreso
+router.post('/pruebas/:pruebaId/abandonar',
+    authMiddleware,
+    requireRole('paciente'),
+    pruebaController.abandonarPrueba
+);
+
+// Obtener una prueba específica
+router.get('/pruebas/:pruebaId',
+    authMiddleware,
+    requireRole('paciente'),
+    pruebaController.obtenerPrueba
+);
+
+// Obtener historial de pruebas
+router.get('/pruebas/historial',
+    authMiddleware,
+    requireRole('paciente'),
+    pruebaController.obtenerHistorialPruebas
+);
+
+// Obtener estadísticas de pruebas
+router.get('/pruebas/estadisticas',
+    authMiddleware,
+    requireRole('paciente'),
+    pruebaController.obtenerEstadisticasPruebas
 );
 
 export default router;
