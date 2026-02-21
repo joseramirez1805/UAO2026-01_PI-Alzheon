@@ -11,10 +11,13 @@ import {
   CuidadorRecording,
   PatientInfo,
   PatientStats,
+  PruebaCognitivaResult,
   fetchAssociatedPatient,
   fetchPatientPhotos,
   fetchPatientRecordings,
   fetchPatientStats,
+  fetchPatientCognitivePruebas,
+  deletePatientCognitivePrueba,
   createPatientPhoto,
   updatePatientPhoto,
   deletePatientPhoto,
@@ -30,7 +33,7 @@ export const CuidadorApp = () => {
 
   const [patient, setPatient] = useState<PatientInfo | null>(null)
   const [hasPatient, setHasPatient] = useState<boolean | null>(null) // null = cargando, true = tiene, false = no tiene
-  const [isAssigning, setIsAssigning] = useState(false) // Estado para botón de auto-asignación
+  const [isAssigning, setIsAssigning] = useState(false) // Estado para botón de auto asignación
   const [photos, setPhotos] = useState<CuidadorPhoto[]>([])
   const [photosLoading, setPhotosLoading] = useState(true)
   const [recordings, setRecordings] = useState<CuidadorRecording[]>([])
@@ -41,6 +44,8 @@ export const CuidadorApp = () => {
     grabacionesEstaSemana: 0,
     ultimaGrabacion: null,
   })
+  const [pruebas, setPruebas] = useState<PruebaCognitivaResult[]>([])
+  const [pruebasLoading, setPruebasLoading] = useState(true)
 
   useEffect(() => {
     const loadPatientData = async () => {
@@ -92,11 +97,24 @@ export const CuidadorApp = () => {
       }
     }
 
+    const loadPruebas = async () => {
+      try {
+        const data = await fetchPatientCognitivePruebas()
+        setPruebas(data)
+      } catch (error) {
+        console.error('Error al cargar pruebas cognitivas:', error)
+        setPruebas([])
+      } finally {
+        setPruebasLoading(false)
+      }
+    }
+
     if (status === 'authenticated' && user.rol?.toLowerCase() === 'cuidador/familiar') {
       loadPatientData()
       loadPhotos()
       loadRecordings()
       loadStats()
+      loadPruebas()
     }
   }, [status, user.rol])
 
@@ -115,6 +133,12 @@ export const CuidadorApp = () => {
     await deletePatientPhoto(photoId)
     setPhotos((prev) => prev.filter((photo) => photo._id !== photoId))
     setStats((prev) => ({ ...prev, totalFotos: Math.max(0, prev.totalFotos - 1) }))
+  }
+
+  const handleDeletePrueba = async (pruebaId: string) => {
+    await deletePatientCognitivePrueba(pruebaId)
+    setPruebas((prev) => prev.filter((prueba) => prueba._id !== pruebaId))
+    toast.success('Prueba eliminada exitosamente')
   }
 
   const handleAutoAssign = async () => {
@@ -211,7 +235,7 @@ export const CuidadorApp = () => {
               </ol>
             </div>
 
-            {/* Botón de auto-asignación para pruebas */}
+            {/* Botón de auto asignación para pruebas */}
             <div className="space-y-3 rounded-xl border-2 border-white/30 bg-gradient-to-r from-purple-500/20 to-blue-500/20 p-6 backdrop-blur-sm">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🧪</span>
@@ -270,7 +294,10 @@ export const CuidadorApp = () => {
                   userName={user.nombre ?? 'Cuidador'}
                   patientName={patient.nombre}
                   stats={stats}
+                  pruebas={pruebas}
+                  pruebasLoading={pruebasLoading}
                   onNavigate={(path) => navigate(path)}
+                  onDeletePrueba={handleDeletePrueba}
                 />
               }
             />
