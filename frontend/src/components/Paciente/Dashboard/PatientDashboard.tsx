@@ -1,4 +1,4 @@
-import { HiCalendar, HiChevronRight, HiHandRaised, HiMicrophone, HiPhoto, HiSparkles } from 'react-icons/hi2'
+import { HiBeaker, HiCalendar, HiChevronRight, HiHandRaised, HiMicrophone, HiPhoto, HiSparkles } from 'react-icons/hi2'
 import { ReminderSettings } from '../../../services/api'
 
 interface PatientDashboardProps {
@@ -9,6 +9,7 @@ interface PatientDashboardProps {
   recentRecordingDate?: string
   photoCount: number
   onNavigate: (path: string) => void
+  onIniciarPrueba?: () => void
 }
 
 const quickActions = [
@@ -25,6 +26,7 @@ export const PatientDashboard = ({
   recentRecordingDate,
   photoCount,
   onNavigate,
+  onIniciarPrueba,
 }: PatientDashboardProps) => {
   const progress = Math.min(100, Math.round((sessionsCompleted / weeklyGoal) * 100))
 
@@ -58,21 +60,37 @@ export const PatientDashboard = ({
               </button>
             </div>
 
-            <div className="glass-card p-5 flex flex-col gap-5">
-              <div>
-                <p className="text-sm uppercase tracking-[0.3em] text-white/70">Progreso semanal</p>
-                <div className="mt-2 flex items-end gap-2">
-                  <span className="text-4xl font-semibold text-white">{sessionsCompleted}</span>
-                  <span className="text-white/70 text-sm">de {weeklyGoal} sesiones</span>
-                </div>
-              </div>
-              <div className="h-3 rounded-full bg-white/20 overflow-hidden">
-                <div className="h-full bg-[#3B9CFF]" style={{ width: `${progress}%` }} />
-              </div>
-              <span className="text-sm text-white/70">
-                Excelente trabajo, ¡mantén este ritmo!
-              </span>
+            <div className="glass-card p-5 flex flex-col gap-3 bg-gradient-to-br from-[#3B9CFF]/20 to-purple-500/20">
+              <p className="text-sm uppercase tracking-[0.3em] text-white/70">Ejercicio cognitivo</p>
+              <h3 className="text-2xl font-semibold text-white">Prueba de memoria</h3>
+              <p className="text-white/70 text-sm">Evalúa tu memoria visual y verbal con esta actividad interactiva.</p>
+              <button
+                onClick={onIniciarPrueba}
+                className="mt-auto bg-gradient-to-r from-[#3B9CFF] to-purple-500 hover:from-[#2B8CEF] hover:to-purple-600 rounded-full px-5 py-3 text-left text-sm font-semibold text-white flex items-center justify-between transition"
+              >
+                <span className="flex items-center gap-2">
+                  <HiBeaker />
+                  Iniciar prueba
+                </span>
+                <HiChevronRight />
+              </button>
             </div>
+          </div>
+
+          <div className="mt-6 glass-card p-5 flex flex-col gap-5">
+            <div>
+              <p className="text-sm uppercase tracking-[0.3em] text-white/70">Progreso semanal</p>
+              <div className="mt-2 flex items-end gap-2">
+                <span className="text-4xl font-semibold text-white">{sessionsCompleted}</span>
+                <span className="text-white/70 text-sm">de {weeklyGoal} sesiones</span>
+              </div>
+            </div>
+            <div className="h-3 rounded-full bg-white/20 overflow-hidden">
+              <div className="h-full bg-[#3B9CFF]" style={{ width: `${progress}%` }} />
+            </div>
+            <span className="text-sm text-white/70">
+              Excelente trabajo, ¡mantén este ritmo!
+            </span>
           </div>
         </div>
 

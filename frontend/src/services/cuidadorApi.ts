@@ -49,6 +49,19 @@ export interface AnalisisCognitivo {
   createdAt: string
 }
 
+export interface PruebaCognitivaResult {
+  _id: string
+  pacienteId: string
+  primeraSecuenciaImagenes: { url: string; orden: number }[]
+  segundaSecuenciaImagenes: { url: string; orden: number }[]
+  pregunta: string
+  respuestaTexto?: string
+  puntajeOrdenamiento: number
+  tiempoCompletado: number
+  estado: 'en_progreso' | 'completada' | 'abandonada'
+  createdAt: string
+}
+
 export interface GrabacionConAnalisis {
   _id: string
   photoId: string
@@ -119,7 +132,7 @@ export const createPatientPhoto = async (payload: CreatePhotoPayload): Promise<C
     })
     return data
   }
-  
+
   // Si es una URL externa
   const { data } = await cuidadorApiClient.post('/api/cuidador/fotos', {
     etiqueta: payload.etiqueta,
@@ -156,6 +169,17 @@ export const fetchGrabaciones = async (): Promise<GrabacionConAnalisis[]> => {
 export const fetchPatientStats = async (): Promise<PatientStats> => {
   const { data } = await cuidadorApiClient.get('/api/cuidador/estadisticas')
   return data
+}
+
+// Obtener pruebas cognitivas del paciente
+export const fetchPatientCognitivePruebas = async (): Promise<PruebaCognitivaResult[]> => {
+  const { data } = await cuidadorApiClient.get('/api/cuidador/pruebas-cognitivas')
+  return data
+}
+
+// Eliminar una prueba cognitiva del paciente
+export const deletePatientCognitivePrueba = async (pruebaId: string): Promise<void> => {
+  await cuidadorApiClient.delete(`/api/cuidador/pruebas-cognitivas/${pruebaId}`)
 }
 
 // Auto-asignar cuidador a paciente (para desarrollo/testing)
