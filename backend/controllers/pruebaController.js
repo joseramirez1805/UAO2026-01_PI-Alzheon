@@ -93,7 +93,7 @@ export const iniciarPrueba = async (req, res) => {
             ...segundaSecuencia.map((_, idx) => idx + primeraSecuencia.length)
         ];
         
-        // Preguntas posibles (puedes agregar más)
+        // Preguntas posibles
         const preguntas = [
             '¿Qué hiciste el día de ayer?',
             '¿Qué desayunaste hoy?',
@@ -123,7 +123,7 @@ export const iniciarPrueba = async (req, res) => {
         res.status(201).json({
             mensaje: 'Prueba iniciada exitosamente',
             prueba: nuevaPrueba,
-            fase: 'primera_secuencia' // Indicar la fase actual
+            fase: 'primera_secuencia'
         });
         
     } catch (error) {
@@ -185,41 +185,14 @@ export const guardarRespuestaVerbal = async (req, res) => {
             return res.status(404).json({ error: 'Prueba no encontrada' });
         }
         
-        let transcripcion = null;
-        let audioUrl = null;
-        
-        // Si hay audio, procesarlo
-        if (req.file) {
-            console.log('🎵 Procesando audio de respuesta...');
-            
-            // Subir audio a R2
-            audioUrl = await uploadAudioToR2(
-                req.file.buffer,
-                req.file.mimetype,
-                req.file.originalname
-            );
-            
-            // Transcribir audio
-            try {
-                transcripcion = await transcribeAudio(req.file.buffer, req.file.originalname);
-                console.log('✅ Audio transcrito:', transcripcion);
-            } catch (error) {
-                console.error('❌ Error al transcribir:', error.message);
-            }
-        }
-        
-        // Usar transcripción o texto proporcionado
-        const respuestaFinal = transcripcion || respuestaTexto;
-        
-        if (!respuestaFinal) {
+        if (!respuestaTexto?.trim()) {
             return res.status(400).json({ 
                 error: 'Debes proporcionar una respuesta en texto' 
             });
         }
         
         // Actualizar prueba
-        prueba.respuestaPaciente = respuestaFinal;
-        prueba.audioRespuestaUrl = audioUrl;
+        prueba.respuestaPaciente = respuestaTexto;
         prueba.timestamps.finRespuestaVerbal = new Date();
         
         await prueba.save();
