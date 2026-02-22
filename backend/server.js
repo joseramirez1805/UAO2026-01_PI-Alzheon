@@ -58,6 +58,15 @@ app.use(cookieParser());
 // Servir archivos estáticos desde la carpeta uploads
 app.use('/uploads', express.static('uploads'));
 
+// Middleware de debugging para ver todas las requests POST a /api/pruebas
+app.use((req, res, next) => {
+    if (req.method === 'POST' && req.path.startsWith('/api/pruebas')) {
+        console.log(`\n📡 [${req.method}] ${req.path}`);
+        console.log(`   URL completa: ${req.originalUrl}`);
+    }
+    next();
+});
+
 app.use('/api', router);
 
 connectDB();

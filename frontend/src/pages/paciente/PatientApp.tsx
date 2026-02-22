@@ -6,6 +6,7 @@ import { PatientDashboard } from '../../components/Paciente/Dashboard/PatientDas
 import { PatientPhotos } from '../../components/Paciente/MisFotos/PatientPhotos'
 import { PatientRecordings } from '../../components/Paciente/MisGrabaciones/PatientRecordings'
 import { PatientSettings } from '../../components/Paciente/Configuracion/PatientSettings'
+import { PruebaCognitiva } from '../../components/Paciente/PruebasCognitivas/PruebaCognitiva'
 import {
   PatientPhoto,
   PatientProfile,
@@ -66,6 +67,7 @@ export const PatientApp = () => {
     email: user.email ?? '',
     telefono: '',
   })
+  const [mostrarPrueba, setMostrarPrueba] = useState(false)
 
   useEffect(() => {
     setProfile((prev) => ({
@@ -195,6 +197,18 @@ export const PatientApp = () => {
     await updatePatientPassword(payload)
   }
 
+  const handleIniciarPrueba = () => {
+    setMostrarPrueba(true)
+  }
+
+  const handleCerrarPrueba = () => {
+    setMostrarPrueba(false)
+  }
+
+  const handlePruebaCompletada = (resultados: any) => {
+    toast.success(`¡Prueba completada! Puntaje: ${resultados.puntajeOrdenamiento}%`)
+  }
+
   useEffect(() => {
     if (status !== 'authenticated') {
       navigate('/login')
@@ -235,6 +249,7 @@ export const PatientApp = () => {
                 recentRecordingDate={latestRecordingDate}
                 photoCount={photos.length}
                 onNavigate={(path) => navigate(path)}
+                onIniciarPrueba={handleIniciarPrueba}
               />
             }
           />
@@ -272,6 +287,14 @@ export const PatientApp = () => {
       </main>
 
       <Footer />
+
+      {/* Modal de Prueba Cognitiva */}
+      {mostrarPrueba && (
+        <PruebaCognitiva
+          onCerrar={handleCerrarPrueba}
+          onCompletada={handlePruebaCompletada}
+        />
+      )}
     </div>
   )
 }
