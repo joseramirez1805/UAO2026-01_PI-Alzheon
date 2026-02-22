@@ -2,6 +2,7 @@ import Usuario from '../models/usuario.js';
 import Foto from '../models/foto.js';
 import Grabacion from '../models/grabacion.js';
 import AnalisisCognitivo from '../models/analisisCognitivo.js';
+import PruebaCognitiva from '../models/pruebaCognitiva.js';
 import { uploadImageToR2 } from '../services/uploadService.js';
 
 //Estudiado
@@ -316,6 +317,62 @@ export const getPatientStats = async (req, res) => {
                 duracion: ultimaGrabacion.duracion
             } : null
         });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Obtener pruebas cognitivas del paciente asociado
+export const getPatientCognitivePruebas = async (req, res) => {
+    try {
+        const cuidador = await Usuario.findById(req.usuario._id);
+        
+        if (!cuidador || cuidador.rol !== 'cuidador/familiar') {
+            return res.status(403).json({ error: 'No autorizado' });
+        }
+
+        if (!cuidador.pacienteAsociado) {
+            return res.status(404).json({ error: 'No tienes un paciente asociado' });
+        }
+
+        const pruebas = await PruebaCognitiva.find({ 
+            pacienteId: cuidador.pacienteAsociado 
+        }).sort({ createdAt: -1 });
+
+        res.json(pruebas);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Eliminar una prueba cognitiva del paciente
+export const deletePatientCognitivePrueba = async (req, res) => {
+    try {
+        const cuidador = await Usuario.findById(req.usuario._id);
+        
+        if (!cuidador || cuidador.rol !== 'cuidador/familiar') {
+            return res.status(403).json({ error: 'No autorizado' });
+        }
+
+        if (!cuidador.pacienteAsociado) {
+            return res.status(404).json({ error: 'No tienes un paciente asociado' });
+        }
+
+        const { pruebaId } = req.params;
+        
+        // Verificar que la prueba pertenece al paciente del cuidador
+        const prueba = await PruebaCognitiva.findOne({
+            _id: pruebaId,
+            pacienteId: cuidador.pacienteAsociado
+        });
+
+        if (!prueba) {
+            return res.status(404).json({ error: 'Prueba no encontrada' });
+        }
+
+        await PruebaCognitiva.findByIdAndDelete(pruebaId);
+        
+        res.json({ mensaje: 'Prueba eliminada exitosamente' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
