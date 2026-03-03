@@ -77,7 +77,7 @@ export const PatientPhotos = ({ photos, onUploadRecording, loading }: PatientPho
           >
             <div className="relative h-52 w-full overflow-hidden">
               <img
-                src={photo.url_contenido}
+                src={photo.url_contenido || ''}
                 alt={photo.etiqueta}
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />

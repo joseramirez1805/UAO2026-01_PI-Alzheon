@@ -143,9 +143,19 @@ export const getPatientPhotos = async (req, res) => {
             return res.status(403).json({ error: 'No tienes acceso a este paciente' });
         }
 
-        const fotos = await Foto.find({ pacienteId })
+        let fotos = await Foto.find({ pacienteId })
             .populate('cuidadorId', 'nombre email')
             .sort({ createdAt: -1 });
+
+        fotos = fotos.map(f => {
+            const obj = f.toObject();
+            if (obj.imagen && obj.imagen.data) {
+                const b64 = obj.imagen.data.toString('base64');
+                obj.url_contenido = `data:${obj.imagen.contentType};base64,${b64}`;
+                delete obj.imagen;
+            }
+            return obj;
+        });
 
         res.json(fotos);
     } catch (error) {
@@ -171,18 +181,26 @@ export const getPatientRecordings = async (req, res) => {
             .populate('photoId', 'etiqueta url_contenido')
             .sort({ createdAt: -1 });
 
-        const grabacionesFormateadas = grabaciones.map(grabacion => ({
-            _id: grabacion._id,
-            photoId: grabacion.photoId?._id,
-            fotoUrl: grabacion.photoId?.url_contenido || '',
-            fecha: grabacion.createdAt,
-            duracion: grabacion.duracion,
-            audioUrl: grabacion.audioUrl,
-            nota: grabacion.nota,
-            descripcionTexto: grabacion.descripcionTexto,
-            transcripcion: grabacion.transcripcion,
-            tipoContenido: grabacion.tipoContenido
-        }));
+        const grabacionesFormateadas = grabaciones.map(grabacion => {
+            let fotoUrl = grabacion.photoId?.url_contenido || '';
+            // si la foto tiene binario en vez de URL, convertirlo
+            if ((!fotoUrl || fotoUrl === '') && grabacion.photoId?.imagen?.data) {
+                const b64 = grabacion.photoId.imagen.data.toString('base64');
+                fotoUrl = `data:${grabacion.photoId.imagen.contentType};base64,${b64}`;
+            }
+            return {
+                _id: grabacion._id,
+                photoId: grabacion.photoId?._id,
+                fotoUrl,
+                fecha: grabacion.createdAt,
+                duracion: grabacion.duracion,
+                audioUrl: grabacion.audioUrl,
+                nota: grabacion.nota,
+                descripcionTexto: grabacion.descripcionTexto,
+                transcripcion: grabacion.transcripcion,
+                tipoContenido: grabacion.tipoContenido
+            };
+        });
 
         res.json(grabacionesFormateadas);
     } catch (error) {

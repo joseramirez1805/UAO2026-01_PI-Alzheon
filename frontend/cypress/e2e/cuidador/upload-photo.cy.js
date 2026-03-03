@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-describe('Cuidador - Subir foto a Cloudflare R2 (CRÍTICO)', () => {
+describe('Cuidador - Subir foto correctamente', () => {
   
   beforeEach(() => {
     cy.loginAs('cuidador')
@@ -19,7 +19,7 @@ describe('Cuidador - Subir foto a Cloudflare R2 (CRÍTICO)', () => {
     cy.get('input[type="file"], [type="file"]', { timeout: 5000 }).should('exist')
   })
 
-  it('CRÍTICO: Debe subir foto a R2 correctamente', () => {
+  it('Debe subir foto correctamente', () => {
     // Abrir formulario de subida
     cy.contains('Agregar foto').click()
     cy.wait(1000)
@@ -48,25 +48,24 @@ describe('Cuidador - Subir foto a Cloudflare R2 (CRÍTICO)', () => {
     cy.contains('Foto de prueba Cypress', { timeout: 5000 }).should('be.visible')
   })
 
-  it('Debe validar la URL de R2 de la foto subida', () => {
+  it('Debe validar que la foto registrada tiene un src válido', () => {
     // Esperar a que carguen las fotos
     cy.wait(2000)
     
-    // Buscar imágenes dentro de .glass-card, excluyendo imágenes del navbar
+    // Revisar la primera imagen en la galería y comprobar que tiene un src válido
     cy.get('.glass-card img', { timeout: 10000 }).first().then($img => {
       const src = $img.attr('src')
-      
-      // Verificar que la URL es de R2 (solo si no es una imagen local)
-      if (src && !src.includes('background') && !src.includes('logo')) {
-        expect(src).to.include('r2.dev')
-        
-        // Verificar que la imagen carga correctamente
+      expect(src).to.exist
+      // puede ser un data URI o una URL remota
+      if (src && src.startsWith('data:')) {
+        // debe contener base64
+        expect(src).to.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/]+=*$/)
+      } else {
+        // podría ser aún una URL externa; intentamos cargarla
         cy.request(src).then(response => {
           expect(response.status).to.eq(200)
           expect(response.headers['content-type']).to.match(/image/)
         })
-      } else {
-        cy.log('No hay fotos de R2 todavía')
       }
     })
   })

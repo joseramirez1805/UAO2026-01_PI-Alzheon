@@ -341,6 +341,7 @@ router.post('/cuidador/fotos',
 router.put('/cuidador/fotos/:photoId',
     authMiddleware,
     requireRole('cuidador/familiar'),
+    uploadImage.single('image'), // opcionalmente reemplazar la imagen existente
     cuidadorController.updatePatientPhoto
 );
 

@@ -5,9 +5,14 @@ const fotoSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    // la URL sigue existiendo para fotos externas o cuando se quiera seguir usando R2
     url_contenido: {
-        type: String,
-        required: true
+        type: String
+    },
+    // nuevo campo binario para almacenar la imagen directamente en Mongo
+    imagen: {
+        data: Buffer,
+        contentType: String
     },
     descripcion: {
         type: String

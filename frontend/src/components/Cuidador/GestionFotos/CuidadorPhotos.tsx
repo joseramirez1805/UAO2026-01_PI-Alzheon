@@ -433,7 +433,7 @@ const EditPhotoModal = ({ photo, onClose, onUpdate }: EditPhotoModalProps) => {
 
         <div className="space-y-4">
           <div className="rounded-2xl overflow-hidden border border-white/20 mb-4">
-            <img src={photo.url_contenido} alt={photo.etiqueta} className="w-full h-48 object-cover" />
+                <img src={photo.url_contenido || ''} alt={photo.etiqueta} className="w-full h-48 object-cover" />
           </div>
 
           <div>
@@ -506,7 +506,7 @@ const DeletePhotoModal = ({ photo, onClose, onDelete }: DeletePhotoModalProps) =
         <h3 className="text-2xl font-semibold mb-4">¿Eliminar foto?</h3>
         
         <div className="rounded-2xl overflow-hidden border border-white/20 mb-4">
-          <img src={photo.url_contenido} alt={photo.etiqueta} className="w-full h-48 object-cover" />
+          <img src={photo.url_contenido || ''} alt={photo.etiqueta} className="w-full h-48 object-cover" />
         </div>
 
         <p className="text-white/70 mb-6">

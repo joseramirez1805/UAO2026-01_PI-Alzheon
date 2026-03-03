@@ -35,20 +35,15 @@ describe('INTEGRACIÓN - Flujo completo E2E (Médico → Cuidador → Paciente)'
     cy.get('body').should('be.visible')
   })
   
-  it('Debe validar que las imágenes usan R2 cuando existen', () => {
+  it('Debe validar que las fotos cargadas tienen src válidos', () => {
     cy.loginAs('cuidador')
     cy.visit('/cuidador/fotos')
     cy.wait(3000)
     
-    // Verificar URLs de R2 solo si hay imágenes
-    cy.get('body').then($body => {
-      const images = $body.find('img[src*="r2.dev"]')
-      if (images.length > 0) {
-        cy.log(`✓ Encontradas ${images.length} imágenes de R2`)
-        cy.get('img[src*="r2.dev"]').should('have.length.at.least', 1)
-      } else {
-        cy.log('No hay imágenes de R2 aún')
-      }
+    // simplemente asegúrate de que cada img tenga un atributo src no vacío
+    cy.get('.glass-card img', { timeout: 10000 }).each($img => {
+      const src = $img.attr('src')
+      expect(src).to.exist
     })
   })
 })

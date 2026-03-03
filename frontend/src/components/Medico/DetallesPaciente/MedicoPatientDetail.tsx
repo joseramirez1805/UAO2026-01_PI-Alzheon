@@ -253,7 +253,7 @@ export const MedicoPatientDetail = ({
               <div key={photo._id} className="glass-card overflow-hidden group">
                 <div className="relative h-48 w-full overflow-hidden">
                   <img
-                    src={photo.url_contenido}
+                    src={photo.url_contenido || ''}
                     alt={photo.etiqueta}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
@@ -335,7 +335,7 @@ export const MedicoPatientDetail = ({
                 <div key={photo._id} className="glass-card overflow-hidden group">
                   <div className="relative h-64 w-full overflow-hidden">
                     <img
-                      src={photo.url_contenido}
+                      src={photo.url_contenido || '' || ''}
                       alt={photo.etiqueta}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />

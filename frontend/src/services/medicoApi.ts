@@ -43,7 +43,7 @@ export interface PatientDetails extends MedicoPatient {
 export interface MedicoPhoto {
   _id: string
   etiqueta: string
-  url_contenido: string
+  url_contenido?: string
   descripcion?: string
   pacienteId: string
   cuidadorId: {

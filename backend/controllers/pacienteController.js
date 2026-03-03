@@ -14,10 +14,21 @@ export const getPatientPhotos = async (req, res) => {
     try {
         const pacienteId = req.usuario._id;
         
-        const fotos = await Foto.find({ pacienteId })
+        let fotos = await Foto.find({ pacienteId })
             .populate('cuidadorId', 'nombre email')
             .sort({ createdAt: -1 });
         
+        // convertir cualquier imagen binaria en data URI
+        fotos = fotos.map(f => {
+            const obj = f.toObject();
+            if (obj.imagen && obj.imagen.data) {
+                const b64 = obj.imagen.data.toString('base64');
+                obj.url_contenido = `data:${obj.imagen.contentType};base64,${b64}`;
+                delete obj.imagen;
+            }
+            return obj;
+        });
+
         res.json(fotos);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -83,10 +94,16 @@ export const uploadRecording = async (req, res) => {
         }
         
         // Crear grabación
+        let fotoUrl = foto.url_contenido;
+        if (!fotoUrl && foto.imagen && foto.imagen.data) {
+            const b64 = foto.imagen.data.toString('base64');
+            fotoUrl = `data:${foto.imagen.contentType};base64,${b64}`;
+        }
+
         const grabacion = new Grabacion({
             photoId,
             pacienteId,
-            fotoUrl: foto.url_contenido,
+            fotoUrl,
             audioUrl,
             duracion: duracionFinal,
             nota: note || '',

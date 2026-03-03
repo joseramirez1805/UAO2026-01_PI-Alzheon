@@ -10,7 +10,7 @@ export const cuidadorApiClient = axios.create({
 export interface CuidadorPhoto {
   _id: string
   etiqueta: string
-  url_contenido: string
+  url_contenido?: string // puede ser data URI o URL externa
   descripcion?: string
   pacienteId: string
   cuidadorId: {

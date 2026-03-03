@@ -3,7 +3,7 @@ import axios from 'axios'
 export interface PatientPhoto {
   _id: string
   etiqueta: string
-  url_contenido: string
+  url_contenido?: string
   descripcion?: string
 }
 
@@ -44,7 +44,7 @@ export interface UploadRecordingPayload {
   descripcionTexto?: string
 }
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5500'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

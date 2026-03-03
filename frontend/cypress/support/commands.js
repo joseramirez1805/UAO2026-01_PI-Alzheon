@@ -155,19 +155,28 @@ Cypress.Commands.add('apiRequest', (method, endpoint, body = null) => {
   return cy.request(options)
 })
 
-// ========== R2 VALIDATION COMMANDS ==========
+// ========== IMAGE URL VALIDATION COMMANDS ==========
 
 /**
- * Validar que una URL de R2 es válida y accesible
+ * Validar que una URL de imagen es válida y accesible.
+ * También acepta data URIs generados desde Mongo.
  */
-Cypress.Commands.add('validateR2Url', (url) => {
-  expect(url).to.include(Cypress.env('R2_PUBLIC_URL') || 'r2.dev')
-  
-  // Verificar que la imagen carga correctamente
-  cy.request(url).then((response) => {
-    expect(response.status).to.eq(200)
-    expect(response.headers['content-type']).to.match(/image/)
-  })
+Cypress.Commands.add('validateImageUrl', (url) => {
+  expect(url).to.exist
+  if (url.startsWith('data:')) {
+    // formato: data:image/<tipo>;base64,<datos>
+    expect(url).to.match(/^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/]+=*$/)
+  } else {
+    // si es una URL remota opcionalmente podemos verificar que pertenece a R2
+    const r2prefix = Cypress.env('R2_PUBLIC_URL') || 'r2.dev'
+    if (url.includes('http') && url.includes('r2.dev')) {
+      expect(url).to.include(r2prefix)
+    }
+    cy.request(url).then((response) => {
+      expect(response.status).to.eq(200)
+      expect(response.headers['content-type']).to.match(/image/)
+    })
+  }
 })
 
 // ========== HELPER COMMANDS ==========

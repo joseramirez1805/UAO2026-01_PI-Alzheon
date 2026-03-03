@@ -3,7 +3,7 @@ import Foto from '../models/foto.js';
 import Grabacion from '../models/grabacion.js';
 import AnalisisCognitivo from '../models/analisisCognitivo.js';
 import PruebaCognitiva from '../models/pruebaCognitiva.js';
-import { uploadImageToR2 } from '../services/uploadService.js';
+import { compressImage } from '../services/uploadService.js'; // sólo necesitamos compresión si guardamos en BD
 
 //Estudiado
 // Obtener paciente asociado al cuidador
@@ -39,9 +39,20 @@ export const getPatientPhotos = async (req, res) => {
             return res.status(404).json({ error: 'No tienes un paciente asociado' });
         }
 
-        const fotos = await Foto.find({ pacienteId: cuidador.pacienteAsociado })
+        let fotos = await Foto.find({ pacienteId: cuidador.pacienteAsociado })
             .populate('cuidadorId', 'nombre')
             .sort({ createdAt: -1 });
+
+        // convertir imágenes guardadas en datos base64 para el frontend
+        fotos = fotos.map(f => {
+            const obj = f.toObject();
+            if (obj.imagen && obj.imagen.data) {
+                const b64 = obj.imagen.data.toString('base64');
+                obj.url_contenido = `data:${obj.imagen.contentType};base64,${b64}`;
+                delete obj.imagen; // ya no es necesario en la respuesta
+            }
+            return obj;
+        });
 
         res.json(fotos);
     } catch (error) {
@@ -63,11 +74,15 @@ export const createPatientPhoto = async (req, res) => {
         }
 
         let url_contenido;
+        let imagen;
 
-        // Si se sube un archivo de imagen
+        // Si se sube un archivo de imagen, guardamos el buffer en Mongo (comprimido opcionalmente)
         if (req.file) {
-            // Subir imagen comprimida a R2
-            url_contenido = await uploadImageToR2(req.file.buffer, req.file.originalname);
+            const compressed = await compressImage(req.file.buffer);
+            imagen = {
+                data: compressed,
+                contentType: req.file.mimetype
+            };
         } 
         // Si se envía una URL externa
         else if (req.body.url_contenido) {
@@ -82,6 +97,7 @@ export const createPatientPhoto = async (req, res) => {
         const nuevaFoto = new Foto({
             etiqueta,
             url_contenido,
+            imagen,
             descripcion,
             pacienteId: cuidador.pacienteAsociado,
             cuidadorId: req.usuario._id
@@ -89,8 +105,16 @@ export const createPatientPhoto = async (req, res) => {
 
         await nuevaFoto.save();
         
-        const fotoPopulada = await Foto.findById(nuevaFoto._id)
+        let fotoPopulada = await Foto.findById(nuevaFoto._id)
             .populate('cuidadorId', 'nombre');
+
+        // formatear respuesta igual que en listado
+        fotoPopulada = fotoPopulada.toObject();
+        if (fotoPopulada.imagen && fotoPopulada.imagen.data) {
+            const b64 = fotoPopulada.imagen.data.toString('base64');
+            fotoPopulada.url_contenido = `data:${fotoPopulada.imagen.contentType};base64,${b64}`;
+            delete fotoPopulada.imagen;
+        }
 
         res.status(201).json(fotoPopulada);
     } catch (error) {
@@ -103,7 +127,7 @@ export const createPatientPhoto = async (req, res) => {
 export const updatePatientPhoto = async (req, res) => {
     try {
         const { photoId } = req.params;
-        const { etiqueta, descripcion } = req.body;
+        const { etiqueta, descripcion, url_contenido: newUrl } = req.body;
         const cuidador = await Usuario.findById(req.usuario._id);
         
         if (!cuidador || cuidador.rol !== 'cuidador/familiar') {
@@ -124,11 +148,34 @@ export const updatePatientPhoto = async (req, res) => {
 
         foto.etiqueta = etiqueta || foto.etiqueta;
         foto.descripcion = descripcion !== undefined ? descripcion : foto.descripcion;
+
+        // si sube un nuevo archivo, reemplazamos el binario
+        if (req.file) {
+            const compressed = await compressImage(req.file.buffer);
+            foto.imagen = {
+                data: compressed,
+                contentType: req.file.mimetype
+            };
+            foto.url_contenido = undefined;
+        }
+
+        // si se envía una nueva URL
+        if (newUrl) {
+            foto.url_contenido = newUrl;
+            foto.imagen = undefined;
+        }
         
         await foto.save();
         
-        const fotoActualizada = await Foto.findById(foto._id)
+        let fotoActualizada = await Foto.findById(foto._id)
             .populate('cuidadorId', 'nombre');
+
+        fotoActualizada = fotoActualizada.toObject();
+        if (fotoActualizada.imagen && fotoActualizada.imagen.data) {
+            const b64 = fotoActualizada.imagen.data.toString('base64');
+            fotoActualizada.url_contenido = `data:${fotoActualizada.imagen.contentType};base64,${b64}`;
+            delete fotoActualizada.imagen;
+        }
 
         res.json(fotoActualizada);
     } catch (error) {
@@ -187,18 +234,25 @@ export const getPatientRecordings = async (req, res) => {
             .sort({ createdAt: -1 });
 
         // Mapear para incluir todos los campos necesarios
-        const grabacionesFormateadas = grabaciones.map(grabacion => ({
-            _id: grabacion._id,
-            photoId: grabacion.photoId?._id,
-            fotoUrl: grabacion.photoId?.url_contenido || '',
-            fecha: grabacion.createdAt,
-            duracion: grabacion.duracion,
-            audioUrl: grabacion.audioUrl, // Ya es URL completa de R2
-            nota: grabacion.photoId?.etiqueta || '',
-            descripcionTexto: grabacion.descripcionTexto, // Texto escrito por el paciente
-            transcripcion: grabacion.transcripcion, // Transcripción automática
-            tipoContenido: grabacion.tipoContenido // 'audio', 'texto', 'ambos'
-        }));
+        const grabacionesFormateadas = grabaciones.map(grabacion => {
+            let fotoUrl = grabacion.photoId?.url_contenido || '';
+            if ((!fotoUrl || fotoUrl === '') && grabacion.photoId?.imagen?.data) {
+                const b64 = grabacion.photoId.imagen.data.toString('base64');
+                fotoUrl = `data:${grabacion.photoId.imagen.contentType};base64,${b64}`;
+            }
+            return {
+                _id: grabacion._id,
+                photoId: grabacion.photoId?._id,
+                fotoUrl,
+                fecha: grabacion.createdAt,
+                duracion: grabacion.duracion,
+                audioUrl: grabacion.audioUrl, // Ya es URL completa de R2
+                nota: grabacion.photoId?.etiqueta || '',
+                descripcionTexto: grabacion.descripcionTexto, // Texto escrito por el paciente
+                transcripcion: grabacion.transcripcion, // Transcripción automática
+                tipoContenido: grabacion.tipoContenido // 'audio', 'texto', 'ambos'
+            };
+        });
 
         res.json(grabacionesFormateadas);
     } catch (error) {
@@ -241,7 +295,14 @@ export const getRecordingsWithAnalysis = async (req, res) => {
             return {
                 _id: grabacion._id,
                 photoId: grabacion.photoId?._id,
-                fotoUrl: grabacion.photoId?.url_contenido || '',
+                fotoUrl: (() => {
+                    let u = grabacion.photoId?.url_contenido || '';
+                    if ((!u || u === '') && grabacion.photoId?.imagen?.data) {
+                        const b64 = grabacion.photoId.imagen.data.toString('base64');
+                        u = `data:${grabacion.photoId.imagen.contentType};base64,${b64}`;
+                    }
+                    return u;
+                })(),
                 fecha: grabacion.createdAt,
                 duracion: grabacion.duracion,
                 audioUrl: grabacion.audioUrl,

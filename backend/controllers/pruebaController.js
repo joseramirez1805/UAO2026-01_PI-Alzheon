@@ -1,4 +1,5 @@
 import PruebaCognitiva from '../models/pruebaCognitiva.js';
+import Foto from '../models/foto.js';
 
 // Obtener imágenes reales aleatorias de fuentes confiables con alta variedad
 const obtenerImagenesAleatorias = async (cantidad) => {
@@ -73,8 +74,43 @@ export const iniciarPrueba = async (req, res) => {
         const cantidadPrimeraSecuencia = Math.random() > 0.5 ? 3 : 2;
         const cantidadSegundaSecuencia = 5 - cantidadPrimeraSecuencia; // Siempre suma 5
         
-        // Obtener 5 imágenes únicas (barajadas una sola vez)
-        const todasLasImagenes = await obtenerImagenesAleatorias(5);
+        // Primero, intentar usar las fotos subidas para este paciente
+        const fotosPacienteDocs = await Foto.find({ pacienteId }).sort({ createdAt: -1 });
+        console.log(`📸 Fotos encontradas en BD para paciente ${pacienteId}: ${fotosPacienteDocs.length}`);
+        fotosPacienteDocs.forEach((f, i) => {
+            const tieneUrl = !!f.url_contenido;
+            const tieneImagen = !!(f.imagen && f.imagen.data);
+            console.log(`   Foto ${i}: etiqueta="${f.etiqueta}", url_contenido=${tieneUrl}, imagen.data=${tieneImagen}`);
+        });
+
+        const fotosPaciente = fotosPacienteDocs.map(f => {
+            let url = null;
+            if (f.url_contenido) url = f.url_contenido;
+            else if (f.imagen && f.imagen.data) {
+                const b64 = f.imagen.data.toString('base64');
+                url = `data:${f.imagen.contentType};base64,${b64}`;
+            }
+            return url ? { url, orden: 0 } : null;
+        }).filter(Boolean);
+        console.log(`   ✓ Fotos con URLs válidas: ${fotosPaciente.length}`);
+
+        // Seleccionar hasta 5 imágenes del paciente (aleatorio)
+        let todasLasImagenes = [];
+        if (fotosPaciente.length > 0) {
+            const shuffledPaciente = [...fotosPaciente].sort(() => Math.random() - 0.5);
+            todasLasImagenes = shuffledPaciente.slice(0, 5);
+        }
+
+        // Si hay menos de 5, completar con imágenes externas
+        if (todasLasImagenes.length < 5) {
+            const faltantes = 5 - todasLasImagenes.length;
+            const externas = await obtenerImagenesAleatorias(faltantes + 5);
+            for (const ext of externas) {
+                if (todasLasImagenes.length >= 5) break;
+                const existe = todasLasImagenes.some(i => i.url === ext.url);
+                if (!existe) todasLasImagenes.push({ url: ext.url, orden: 0 });
+            }
+        }
         
         // Dividir en dos secuencias sin repeticiones
         const primeraSecuencia = todasLasImagenes.slice(0, cantidadPrimeraSecuencia).map((img, idx) => ({
@@ -117,13 +153,25 @@ export const iniciarPrueba = async (req, res) => {
         });
         
         await nuevaPrueba.save();
-        
-        console.log(`🎯 NUEVA PRUEBA CREADA: ${nuevaPrueba._id} para paciente ${pacienteId}`);
-        
+
+        // Log de depuración: URLs seleccionadas
+        try {
+            const fotosPacienteUsadas = todasLasImagenes.filter(i => i.url.startsWith('data:')).length;
+            const fotosExternasUsadas = todasLasImagenes.filter(i => !i.url.startsWith('data:')).length;
+            console.log(`🎯 NUEVA PRUEBA CREADA: ${nuevaPrueba._id} para paciente ${pacienteId}`);
+            console.log(`   - Imágenes del paciente usadas: ${fotosPacienteUsadas}`);
+            console.log(`   - Imágenes externas usadas: ${fotosExternasUsadas}`);
+            console.log(`   - Total: ${todasLasImagenes.length}`);
+        } catch (e) {
+            console.warn('No se pudieron loggear las URLs de la prueba', e);
+        }
+
+        // Enviar prueba y devolver lista de imágenes usadas para facilitar depuración en frontend
         res.status(201).json({
             mensaje: 'Prueba iniciada exitosamente',
             prueba: nuevaPrueba,
-            fase: 'primera_secuencia'
+            fase: 'primera_secuencia',
+            debugImagenes: todasLasImagenes.map(i => i.url)
         });
         
     } catch (error) {
